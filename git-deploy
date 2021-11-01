@@ -25,6 +25,7 @@ def run(repo, path=".", passphrase=None, force=False, branch="main"):
         decrypt_repo(path, passphrase)
 
     if not has_cloned and not is_updated and not force:
+        print("Repo has not changed, so nothing to do.")
         return
 
     compose_files = check_compose_files(path)
@@ -104,11 +105,10 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description='git-deploy to sync and deploy docker-compose apps.')
-    parser.add_argument('repository', metavar='R', type=str,
-                    help='remote repository to sync')
+    parser.add_argument('repository', metavar='R', type=str, help='remote repository to sync')
     parser.add_argument('--path', type=str, help="The local path to clone the repo to, default to the current dir.", default=".")
     parser.add_argument('--force', action='store_true', help="Ignore if the repo is updated or not and deploy.")
-    parser.add_argument('--passphrase', type=str, help="Passphrase used to decrypt transcrypt files.")
+    parser.add_argument('--passphrase', type=str, help="Passphrase used to decrypt transcrypt files.", default=None)
     parser.add_argument('--branch', type=str, help="Git repo branch to use, defaults to main.", default="main")
 
     args = parser.parse_args()
