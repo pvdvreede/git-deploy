@@ -1,0 +1,10 @@
+[Unit]
+Description=Git deploy
+
+[Service]
+ExecStartPre=mkdir -p /repos
+ExecStart=/usr/bin/git deploy --path /repos/%I git@github.com:%I
+WorkingDirectory=/repos
+
+[Install]
+WantedBy=multi-user.target

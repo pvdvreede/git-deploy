@@ -1,0 +1,10 @@
+[Unit]
+Description=Run git-deploy every few minutes
+Requires=git-deploy@%i.service
+
+[Timer]
+Unit=git-deploy@%i.service
+OnUnitInactiveSec=5m
+
+[Install]
+WantedBy=timers.target
