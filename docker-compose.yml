@@ -1,0 +1,13 @@
+---
+version: "3.4"
+
+services:
+  mix:
+    build:
+      context: .
+      target: dev
+    working_dir: /workspace
+    volumes:
+      - ".:/workspace"
+    entrypoint:
+      - mix
