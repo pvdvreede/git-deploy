@@ -6,5 +6,6 @@ WORKDIR /workspace
 
 
 FROM debian
-RUN apt-get update
-RUN apt-get install -y docker-compose git git-crypt
+RUN apt-get update && \
+    apt-get install -y docker-compose git git-crypt && \
+    apt-get clean

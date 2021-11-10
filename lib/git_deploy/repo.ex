@@ -1,80 +1,78 @@
 defmodule GitDeploy.Repo do
+  require Logger
+  alias GitDeploy.Commands.Git
+
   defstruct [
     :url,
     :path,
     :cloned,
     :branch,
-    :passphrase,
     :errors,
     :halted,
-    :changed
+    :changed,
+    :deployed
   ]
 
   def new(url) do
     %__MODULE__{
       url: url,
       halted: false,
-      cloned: false
+      deployed: false,
+      errors: []
     }
   end
 
-  def clone(repo, path) do
-    case System.cmd("git", ["clone", repo.url, path]) do
-      {_, 0} ->
-        %{repo | path: path, cloned: true, halted: false, changed: true}
+  def update(repo, path, branch) do
+    cond do
+      File.dir?(path) && not Git.repo?(path) ->
+        %{
+          repo
+          | halted: true,
+            errors: repo.errors ++ ["Dir #{path} already exists, but is not a git repo."]
+        }
 
-      {err, _} ->
-        %{repo | errors: repo.errors ++ [Enum.join(err, " ")], halted: true}
+      File.dir?(path) ->
+        Logger.info("Updating repo in #{path}...")
+
+        with {:ok, old_sha} <- Git.sha(path),
+             :ok <- Git.checkout(path, branch),
+             :ok <- Git.pull(path),
+             {:ok, new_sha} <- Git.sha(path) do
+          %{repo | path: path, branch: branch, cloned: false, changed: old_sha != new_sha}
+        end
+
+      true ->
+        Logger.info("Cloning repo to #{path}...")
+
+        with :ok <- Git.clone(repo.url, path),
+             :ok <- Git.checkout(path, branch) do
+          %{repo | path: path, branch: branch, cloned: true, changed: true}
+        end
     end
   end
 
-  def checkout(%{branch: b1} = r, b2) when b1 == b2, do: r
-
-  def checkout(%{cloned: false} = r, _),
-    do: %{r | errors: r.errors ++ ["Cant checkout if not cloned."]}
-
-  def checkout(%{path: path} = repo, branch) do
-    case System.cmd("git", ["-C", path, "checkout", branch]) do
-      {_, 0} ->
-        %{repo | branch: branch, changed: true}
-
-      {err, _} ->
-        %{repo | errors: repo.errors ++ [err], halted: true}
-    end
+  def decrypt(%{halted: true} = r, _) do
+    r
   end
 
-  def update(repo) do
-    {:ok, prev_sha} = sha(repo)
-
-    case System.cmd("git", ["-C", repo.path, "pull", "origin", repo.branch]) do
-      {_, 0} ->
-        {:ok, current_sha} = sha(repo)
-        %{repo | changed: current_sha != prev_sha}
-
-      {err, _} ->
-        %{repo | errors: repo.errors ++ [err], halted: true}
-    end
-  end
-
-  def decrypt(repo, ""), do: repo
   def decrypt(repo, nil), do: repo
 
-  def decrypt(repo, passphrase) do
-    with tmpdir <- System.tmp_dir!(),
-         creds_path <- Path.join(tmpdir, "creds_tmp"),
-         :ok <- File.write(creds_path, passphrase),
-         {_, 0} <- System.cmd("git", ["-C", repo.path, "crypt", "unlock", creds_path]),
-         :ok <- File.rm(creds_path) do
-      repo
-    end
+  def decrypt(repo, _passphrase) do
+    Logger.info("Decrypting repo in #{repo.path}...")
+    repo
   end
 
-  def sha(%{cloned: false}), do: {:error, "Not cloned out yet."}
+  def deploy(%{halted: true} = r, _) do
+    r
+  end
 
-  def sha(repo) do
-    case System.cmd("git", ["-C", repo.path, "rev-parse", "HEAD"]) do
-      {sha, 0} -> {:ok, String.trim(sha)}
-      {err, _} -> {:error, err}
-    end
+  def deploy(%{changed: false} = repo, false) do
+    Logger.info("No repo changes for #{repo.path}, so not deploying.")
+    repo
+  end
+
+  def deploy(repo, _force) do
+    Logger.info("Deploying #{repo.path}...")
+    %{repo | deployed: true}
   end
 end
