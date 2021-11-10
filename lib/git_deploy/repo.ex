@@ -18,6 +18,8 @@ defmodule GitDeploy.Repo do
       url: url,
       halted: false,
       deployed: false,
+      cloned: false,
+      changed: false,
       errors: []
     }
   end
@@ -74,5 +76,12 @@ defmodule GitDeploy.Repo do
   def deploy(repo, _force) do
     Logger.info("Deploying #{repo.path}...")
     %{repo | deployed: true}
+  end
+
+  def check_errors(%{errors: []}), do: :ok
+
+  def check_errors(%{errors: errors}) do
+    Logger.error("The following errors occured during deployment: #{errors}")
+    {:error, errors}
   end
 end
