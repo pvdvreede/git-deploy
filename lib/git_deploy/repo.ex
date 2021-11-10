@@ -24,6 +24,10 @@ defmodule GitDeploy.Repo do
     }
   end
 
+  def update(repo) do
+    update(repo, repo.path, repo.branch)
+  end
+
   def update(repo, path, branch) do
     cond do
       File.dir?(path) && not Git.repo?(path) ->
@@ -78,10 +82,10 @@ defmodule GitDeploy.Repo do
     %{repo | deployed: true}
   end
 
-  def check_errors(%{errors: []}), do: :ok
+  def check_errors(%{errors: []} = repo), do: repo
 
-  def check_errors(%{errors: errors}) do
+  def check_errors(%{errors: errors} = repo) do
     Logger.error("The following errors occured during deployment: #{errors}")
-    {:error, errors}
+    repo
   end
 end
