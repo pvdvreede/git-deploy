@@ -82,7 +82,10 @@ defmodule GitDeploy.Repo do
     %{repo | deployed: true}
   end
 
-  def check_errors(%{errors: []} = repo), do: repo
+  def check_errors(%{errors: []} = repo) do
+    Logger.info("Update complete for #{repo.path}.")
+    repo
+  end
 
   def check_errors(%{errors: errors} = repo) do
     Logger.error("The following errors occured during deployment: #{errors}")

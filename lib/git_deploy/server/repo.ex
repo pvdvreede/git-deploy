@@ -20,6 +20,7 @@ defmodule GitDeploy.Server.Repo do
     repo
     |> Repo.update()
     |> Repo.deploy(false)
+    |> Repo.check_errors()
 
     timer = Process.send_after(self(), :deploy, 60_000)
     {:noreply, %{state | timer: timer, repo: repo}}
