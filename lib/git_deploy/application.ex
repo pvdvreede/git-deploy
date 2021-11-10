@@ -1,7 +1,7 @@
 defmodule GitDeploy.Application do
- use Application
+  use Application
 
- def start(_start_type, _start_args) do
+  def start(_start_type, _start_args) do
     repo = Application.fetch_env!(:git_deploy, :repo)
 
     children = [
@@ -9,5 +9,5 @@ defmodule GitDeploy.Application do
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one)
- end
+  end
 end
